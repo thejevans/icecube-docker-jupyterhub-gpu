@@ -1,25 +1,38 @@
 import os
+import sys
 import docker
+
+from jupyter_client.localinterfaces import public_ips
+
+ip = public_ips()[0]
+print("IPS!!!")
+print(ip)
+
+c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
+
+#c.JupyterHub.ip = '0.0.0.0'
+c.JupyterHub.hub_ip = ip
 
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']
 c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
 c.JupyterHub.hub_ip = os.environ['HUB_IP']
 
-c.JupyterHub.load_roles = [
-    {
-        "name": "jupyterhub-idle-culler-role",
-        "scopes": [
-            "list:users",
-            "read:users:activity",
-            "read:servers",
-            "delete:servers",
-            # "admin:users", # if using --cull-users
-        ],
-        # assignment of role's permissions to:
-        "services": ["jupyterhub-idle-culler-service"],
-    }
-]
+# Uncomment for jupyterhub version >= 2.0 
+# c.JupyterHub.load_roles = [
+#     {
+#         "name": "jupyterhub-idle-culler-role",
+#         "scopes": [
+#             "list:users",
+#             "read:users:activity",
+#             "read:servers",
+#             "delete:servers",
+#             # "admin:users", # if using --cull-users
+#         ],
+#         # assignment of role's permissions to:
+#         "services": ["jupyterhub-idle-culler-service"],
+#     }
+# ]
 
 c.JupyterHub.services = [
     {
@@ -29,7 +42,7 @@ c.JupyterHub.services = [
             "-m", "jupyterhub_idle_culler",
             "--timeout=3600",
         ],
-        # "admin": True,
+        "admin": True, # Comment out for jupyterhub version >= 2.0
     }
 ]
 
