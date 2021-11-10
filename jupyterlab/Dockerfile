@@ -16,3 +16,11 @@ RUN apt-get update \
 RUN python3 -m pip install \
 	jupyterlab==$jl_version \
 	jupyterhub==$jh_version
+
+# create a user, since we don't want to run as root
+RUN useradd -m jovyan
+ENV HOME=/home/jovyan
+WORKDIR $HOME
+USER jovyan
+
+CMD ["jupyterhub-singleuser"]

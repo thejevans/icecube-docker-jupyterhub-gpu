@@ -11,13 +11,11 @@ c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
 c.Authenticator.admin_groups = {admin_group}
 c.Authenticator.allowed_groups = {admin_group, user_group}
 
-c.JupyterHub.ip = public_ips()[0]
-c.JupyterHub.hub_ip = '127.0.0.1'
+c.JupyterHub.hub_ip = public_ips()[0]
 
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']
 c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
-c.JupyterHub.hub_ip = os.environ['HUB_IP']
 
 # Uncomment for jupyterhub version >= 2.0 
 # c.JupyterHub.load_roles = [

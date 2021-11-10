@@ -19,6 +19,7 @@ docker build \
 docker create \
 	--name=jupyterhub_hub \
 	--restart=unless-stopped \
+	--network=${COMPOSE_PROJECT_NAME}_default \
 	-v $DOCKER_SOCKET:/var/run/docker.sock \
 	-v jupyterhub-data:/srv/jupyterhub \
 	-v /etc/passwd:/etc/passwd:ro \
@@ -26,7 +27,6 @@ docker create \
 	-v /etc/group:/etc/group:ro \
 	-e DOCKER_JUPYTER_IMAGE=icecube-jupyter \
 	-e DOCKER_NETWORK_NAME=${COMPOSE_PROJECT_NAME}_default \
-	-e HUB_IP='127.0.0.1' \
 	-e DOCKER_JUPYTER_ADMINGROUP=$JUPYTERHUB_ADMINGROUP \
 	-e DOCKER_JUPYTER_USERGROUP=$JUPYTERHUB_USERGROUP \
 	-p $JUPYTERHUB_PORT:8000 \
