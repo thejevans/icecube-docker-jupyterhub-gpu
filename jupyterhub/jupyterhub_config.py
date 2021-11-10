@@ -4,14 +4,15 @@ import docker
 
 from jupyter_client.localinterfaces import public_ips
 
-ip = public_ips()[0]
-print("IPS!!!")
-print(ip)
+admin_group = os.environ['DOCKER_JUPYTER_ADMINGROUP']
+user_group = os.environ['DOCKER_JUPYTER_USERGROUP']
 
 c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
+c.Authenticator.admin_groups = {admin_group}
+c.Authenticator.allowed_groups = {admin_group, user_group}
 
-#c.JupyterHub.ip = '0.0.0.0'
-c.JupyterHub.hub_ip = ip
+c.JupyterHub.ip = public_ips()[0]
+c.JupyterHub.hub_ip = '127.0.0.1'
 
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']
