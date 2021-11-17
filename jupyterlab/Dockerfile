@@ -25,4 +25,5 @@ WORKDIR $HOME
 USER jovyan
 RUN mkdir /home/jovyan/work
 
+ENTRYPOINT ["/usr/bin/env"] 
 CMD ["jupyterhub-singleuser"]
