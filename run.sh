@@ -22,13 +22,12 @@ docker create \
 	--network=${COMPOSE_PROJECT_NAME}_default \
 	-v $DOCKER_SOCKET:/var/run/docker.sock \
 	-v jupyterhub-data:/srv/jupyterhub \
-	-v /etc/passwd:/etc/passwd:ro \
-	-v /etc/shadow:/etc/shadow:ro \
-	-v /etc/group:/etc/group:ro \
+	-v /data:/data \
+	-v /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org \
 	-e DOCKER_JUPYTER_IMAGE=icecube-jupyter \
 	-e DOCKER_NETWORK_NAME=${COMPOSE_PROJECT_NAME}_default \
-	-e DOCKER_JUPYTER_ADMINGROUP=$JUPYTERHUB_ADMINGROUP \
-	-e DOCKER_JUPYTER_USERGROUP=$JUPYTERHUB_USERGROUP \
+	-e DOCKER_JUPYTER_ADMINS=$JUPYTERHUB_ADMINS \
+	-e DOCKER_JUPYTER_USERS=$JUPYTERHUB_USERS \
 	-p $JUPYTERHUB_PORT:8000 \
 	jupyterhub
 

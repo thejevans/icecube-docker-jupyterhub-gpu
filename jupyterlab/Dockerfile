@@ -9,6 +9,7 @@ RUN apt-get update \
  && apt-get install -yq --no-install-recommends \
 	npm \
 	nodejs \
+	sudo \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -18,9 +19,10 @@ RUN python3 -m pip install \
 	jupyterhub==$jh_version
 
 # create a user, since we don't want to run as root
-RUN useradd -m jovyan
+RUN useradd -m jovyan && echo "jovyan:jovyan" | chpasswd && adduser jovyan sudo
 ENV HOME=/home/jovyan
 WORKDIR $HOME
 USER jovyan
+RUN mkdir /home/jovyan/work
 
 CMD ["jupyterhub-singleuser"]

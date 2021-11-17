@@ -1,21 +1,35 @@
 import os
 import sys
 import docker
+import sshauthenticator
 
 from jupyter_client.localinterfaces import public_ips
 
-admin_group = os.environ['DOCKER_JUPYTER_ADMINGROUP']
-user_group = os.environ['DOCKER_JUPYTER_USERGROUP']
+admins = os.environ['DOCKER_JUPYTER_ADMINS']
+if admins == '':
+    admins = set()
+else:
+    admins = set(admins.replace(' ', '').split(','))
 
-c.JupyterHub.authenticator_class = 'jupyterhub.auth.PAMAuthenticator'
-c.Authenticator.admin_groups = {admin_group}
-c.Authenticator.allowed_groups = {admin_group, user_group}
+users = os.environ['DOCKER_JUPYTER_USERS']
+if users == '':
+    users = set()
+else:
+    users = set(users.replace(' ', '').split(','))
+
+c.JupyterHub.authenticator_class = 'sshauthenticator.SSHAuthenticator'
+c.Authenticator.admin_users = admins
+c.Authenticator.allowed_users = users
+
+c.SSHAuthenticator.server_address = 'pa-pub.umd.edu'
+c.SSHAuthenticator.server_port = 22
 
 c.JupyterHub.hub_ip = public_ips()[0]
 
 c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']
 c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
+c.DockerSpawner.prefix = 'jupyter_testing'
 
 # Uncomment for jupyterhub version >= 2.0 
 # c.JupyterHub.load_roles = [
@@ -47,12 +61,17 @@ c.JupyterHub.services = [
 
 # Redirect to JupyterLab, instead of the plain Jupyter notebook
 c.Spawner.default_url = '/lab'
+c.Spawner.environment = {'SHELL': '/bin/bash'}
 
 # user data persistence
 # see https://github.com/jupyterhub/dockerspawner#data-persistence-and-dockerspawner
 notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
 c.DockerSpawner.notebook_dir = notebook_dir
-c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }
+c.DockerSpawner.volumes = {
+    'jupyterhub-user-{username}': notebook_dir,
+    '/data': '/data',
+    '/cvmfs/icecube.opensciencegrid.org': '/cvmfs/icecube.opensciencegrid.org',
+}
 
 # spawn containers that can access the gpus
 c.DockerSpawner.extra_host_config = {

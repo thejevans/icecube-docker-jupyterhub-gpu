@@ -11,4 +11,6 @@ COPY jupyterhub_config.py .
 RUN pip install \
 	jupyter_client \
 	dockerspawner==$ds_version \
-	jupyterhub-idle-culler
+	jupyterhub-idle-culler \
+	https://github.com/andreas-h/sshauthenticator/archive/v0.1.zip
+
