@@ -3,7 +3,47 @@ import sys
 import docker
 import sshauthenticator
 
+from dockerspawner import DockerSpawner
 from jupyter_client.localinterfaces import public_ips
+
+images = []
+with open('images.txt', 'r') as f:
+    images = f.readlines()
+
+options_form_tpl = '\n'.join([
+    '<label for="image">Image</label>',
+    '<select name="image" class="form-control" placeholder="the image to launch (default: {default_image})">',
+    *[f'\t<option value={image}>{image}</option>' for image in images],
+    '</select>'
+])
+
+
+
+def get_options_form(spawner):
+    return options_form_tpl.format(default_image=spawner.image)
+
+
+c.DockerSpawner.options_form = get_options_form
+
+
+class CustomDockerSpawner(DockerSpawner):
+    def options_from_form(self, formdata):
+        options = {}
+        image_form_list = formdata.get("image", [])
+        if image_form_list and image_form_list[0]:
+            options["image"] = image_form_list[0].strip()
+            self.log.info(f"User selected image: {options['image']}")
+        return options
+
+    def load_user_options(self, options):
+        image = options.get("image")
+        if image:
+            self.log.info(f"Loading image {image}")
+            self.image = image
+
+
+c.JupyterHub.spawner_class = CustomDockerSpawner
+
 
 admins = os.environ['DOCKER_JUPYTER_ADMINS']
 if admins == '':
@@ -26,8 +66,7 @@ c.SSHAuthenticator.server_port = 22
 
 c.JupyterHub.hub_ip = public_ips()[0]
 
-c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
-c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']
+#c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
 c.DockerSpawner.prefix = 'jupyter_testing'
 
@@ -69,7 +108,9 @@ notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
 c.DockerSpawner.notebook_dir = notebook_dir
 c.DockerSpawner.volumes = {
     'jupyterhub-user-{username}': notebook_dir,
-    '/data': '/data',
+    '/data/i3store/': '/data/i3store',
+    '/data/i3home': '/data/i3home',
+    '/scratch/users/{username}': '/scratch/users/{username}',
     '/cvmfs/icecube.opensciencegrid.org': '/cvmfs/icecube.opensciencegrid.org',
 }
 

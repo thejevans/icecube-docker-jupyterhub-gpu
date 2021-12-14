@@ -1,4 +1,4 @@
-FROM icecube/icetray:combo-stable-tensorflow2.4.1-ubuntu20.04
+FROM %%IMAGE%% 
 
 ARG jl_version
 ARG jh_version
@@ -10,6 +10,7 @@ RUN apt-get update \
 	npm \
 	nodejs \
 	sudo \
+	python3-pip \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 

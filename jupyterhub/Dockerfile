@@ -6,7 +6,7 @@ ARG ds_version
 
 # Copy the JupyterHub configuration in the container
 COPY jupyterhub_config.py .
-
+COPY images.txt .
 # Install dependencies (for advanced authentication and spawning)
 RUN pip install \
 	jupyter_client \
