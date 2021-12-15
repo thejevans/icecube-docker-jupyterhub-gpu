@@ -17,8 +17,18 @@ while read p; do
   [ ! -d "${dir}" ] && mkdir ${dir}
   cp Dockerfile.template ${dir}/Dockerfile
   sed -i "s|%%IMAGE%%|$p|g" ${dir}/Dockerfile
-  export $(xargs < .env)
 done < images.txt
+
+# Create docker network and volume for jupyterhub
+docker volume create --name jupyterhub-data
+docker network create ${COMPOSE_PROJECT_NAME}_default
+
+# Build jupyterhub image
+docker build \
+	-t ${JUPYTERHUB_IMAGE_REPOSITORY}:latest \
+	--build-arg version=$JUPYTERHUB_VERSION \
+	--build-arg ds_version=$DOCKERSPAWNER_VERSION \
+	./jupyterhub
 
 # Build docker images from each dockerfile
 while read p; do

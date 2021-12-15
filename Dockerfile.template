@@ -1,7 +1,7 @@
-FROM %%IMAGE%% 
+FROM jupyter/base-notebook
+WORKDIR /usr/local/bin
 
-ARG jl_version
-ARG jh_version
+FROM %%IMAGE%% 
 
 # jupyterhub requires npm and nodejs
 ENV DEBIAN_FRONTEND noninteractive
@@ -15,6 +15,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # jupyterhub needs to be installed on spawned containers
+ARG jl_version
+ARG jh_version
 RUN python3 -m pip install \
 	jupyterlab==$jl_version \
 	jupyterhub==$jh_version
@@ -23,8 +25,19 @@ RUN python3 -m pip install \
 RUN useradd -m jovyan && echo "jovyan:jovyan" | chpasswd && adduser jovyan sudo
 ENV HOME=/home/jovyan
 WORKDIR $HOME
-USER jovyan
-RUN mkdir /home/jovyan/work
 
-ENTRYPOINT ["/usr/bin/env"] 
-CMD ["jupyterhub-singleuser"]
+# copy scripts from jupyter image
+USER root
+COPY --from=0 /usr/local/bin/start.sh /usr/local/bin/start-notebook.sh /usr/local/bin/start-singleuser.sh /usr/local/bin/
+
+# switch run command to jupyterlab
+RUN sed -i 's/jupyterhub-singleuser/jupyter-labhub/g' /usr/local/bin/start-singleuser.sh
+ENTRYPOINT ["/usr/bin/env"]
+
+# change jovyan user to match local user and run jupyterlab 
+CMD ["sh", "-c", "NB_UID=$(stat -c '%u' /data/i3home/$NB_USER) start-notebook.sh"]
+
+# switch to non root user and clean up
+USER ${NB_UID}
+RUN rm -rf "/home/${NB_USER}/.cache/yarn"
+WORKDIR "${HOME}"

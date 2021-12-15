@@ -6,24 +6,13 @@ import sshauthenticator
 from dockerspawner import DockerSpawner
 from jupyter_client.localinterfaces import public_ips
 
-images = []
-with open('images.txt', 'r') as f:
-    images = f.readlines()
-
-options_form_tpl = '\n'.join([
-    '<label for="image">Image</label>',
-    '<select name="image" class="form-control" placeholder="the image to launch (default: {default_image})">',
-    *[f'\t<option value={image}>{image}</option>' for image in images],
-    '</select>'
-])
-
-
 
 def get_options_form(spawner):
     return options_form_tpl.format(default_image=spawner.image)
 
 
-c.DockerSpawner.options_form = get_options_form
+def set_nb_user(spawner):
+    spawner.environment['NB_USER'] = spawner.user.name
 
 
 class CustomDockerSpawner(DockerSpawner):
@@ -42,8 +31,16 @@ class CustomDockerSpawner(DockerSpawner):
             self.image = image
 
 
-c.JupyterHub.spawner_class = CustomDockerSpawner
+images = []
+with open('images.txt', 'r') as f:
+    images = f.readlines()
 
+options_form_tpl = '\n'.join([
+    '<label for="image">Image</label>',
+    '<select name="image" class="form-control" placeholder="the image to launch (default: {default_image})">',
+    *[f'\t<option value={image}>{image}</option>' for image in images],
+    '</select>'
+])
 
 admins = os.environ['DOCKER_JUPYTER_ADMINS']
 if admins == '':
@@ -57,18 +54,51 @@ if users == '':
 else:
     users = set(users.replace(' ', '').split(','))
 
-c.JupyterHub.authenticator_class = 'sshauthenticator.SSHAuthenticator'
-c.Authenticator.admin_users = admins
-c.Authenticator.allowed_users = users
+c.JupyterHub.spawner_class = CustomDockerSpawner
+c.CustomDockerSpawner.options_form = get_options_form
+c.CustomDockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
+c.CustomDockerSpawner.prefix = 'jupyter_testing'
+c.CustomDockerSpawner.pre_spawn_hook = set_nb_user
 
+# Redirect to JupyterLab, instead of the plain Jupyter notebook
+c.Spawner.default_url = '/lab'
+
+c.CustomDockerSpawner.environment = {
+    'SHELL': '/bin/bash',
+    'GRANT_SUDO': '1',
+    'CHOWN_HOME': '1',
+    'NB_GID': '100',
+}
+
+# see https://github.com/jupyterhub/dockerspawner#data-persistence-and-dockerspawner
+notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan'
+c.DockerSpawner.notebook_dir = notebook_dir 
+c.DockerSpawner.volumes = {
+    'jupyterhub-user-{username}': notebook_dir,
+    '/data/i3store/': '/data/i3store',
+    '/data/i3home/{username}': '/data/i3home/{username}',
+    '/scratch/users/{username}': '/scratch/users/{username}',
+    '/cvmfs/icecube.opensciencegrid.org': '/cvmfs/icecube.opensciencegrid.org',
+}
+
+# spawn containers that can access the gpus
+c.DockerSpawner.extra_host_config = {
+    "device_requests": [
+        docker.types.DeviceRequest(
+            count=-1,
+            capabilities=[["gpu"]],
+        ),
+    ],
+}
+
+# user data persistence
+c.JupyterHub.authenticator_class = 'sshauthenticator.SSHAuthenticator'
+c.SSHAuthenticator.admin_users = admins
+c.SSHAuthenticator.allowed_users = users
 c.SSHAuthenticator.server_address = 'pa-pub.umd.edu'
 c.SSHAuthenticator.server_port = 22
 
 c.JupyterHub.hub_ip = public_ips()[0]
-
-#c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
-c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']
-c.DockerSpawner.prefix = 'jupyter_testing'
 
 # Uncomment for jupyterhub version >= 2.0 
 # c.JupyterHub.load_roles = [
@@ -98,28 +128,3 @@ c.JupyterHub.services = [
     }
 ]
 
-# Redirect to JupyterLab, instead of the plain Jupyter notebook
-c.Spawner.default_url = '/lab'
-c.Spawner.environment = {'SHELL': '/bin/bash'}
-
-# user data persistence
-# see https://github.com/jupyterhub/dockerspawner#data-persistence-and-dockerspawner
-notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
-c.DockerSpawner.notebook_dir = notebook_dir
-c.DockerSpawner.volumes = {
-    'jupyterhub-user-{username}': notebook_dir,
-    '/data/i3store/': '/data/i3store',
-    '/data/i3home': '/data/i3home',
-    '/scratch/users/{username}': '/scratch/users/{username}',
-    '/cvmfs/icecube.opensciencegrid.org': '/cvmfs/icecube.opensciencegrid.org',
-}
-
-# spawn containers that can access the gpus
-c.DockerSpawner.extra_host_config = {
-    "device_requests": [
-        docker.types.DeviceRequest(
-            count=-1,
-            capabilities=[["gpu"]],
-        ),
-    ],
-}

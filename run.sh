@@ -1,15 +1,6 @@
 #!/bin/bash
 export $(xargs < .env)
 
-docker volume create --name jupyterhub-data
-docker network create ${COMPOSE_PROJECT_NAME}_default
-
-docker build \
-	-t ${JUPYTERHUB_IMAGE_REPOSITORY}:latest \
-	--build-arg version=$JUPYTERHUB_VERSION \
-	--build-arg ds_version=$DOCKERSPAWNER_VERSION \
-	./jupyterhub
-
 docker create \
 	--name=jupyterhub_hub \
 	--restart=unless-stopped \
